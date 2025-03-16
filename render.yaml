@@ -2,8 +2,16 @@ services:
   - type: web
     name: leaderboard
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    startCommand: >
+      gunicorn backend.main:app 
+      --worker-class uvicorn.workers.UvicornWorker 
+      --workers 4 
+      --bind 0.0.0.0:$PORT 
+      --timeout 120 
+      --access-logfile - 
+      --error-logfile -
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
@@ -20,8 +28,10 @@ services:
         generateValue: true
       - key: DEBUG
         value: false
+    autoDeploy: false
 
   - type: redis
     name: leaderboard-redis
     ipAllowList: []
-    plan: free 
+    plan: free
+    maxmemoryPolicy: noeviction 
