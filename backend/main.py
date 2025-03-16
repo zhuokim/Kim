@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database import SessionLocal, User, Score, Student, get_db
-from backend.redis_client import redis_client
+from redis_client import redis_client
 from backend.auth import create_access_token, decode_token, get_password_hash, verify_password
 from backend.config import TEMPLATES_DIR, STATIC_DIR, ALLOWED_ORIGINS, DEBUG
 from datetime import datetime
