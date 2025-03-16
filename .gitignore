@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -15,7 +16,6 @@ lib64/
 parts/
 sdist/
 var/
-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -23,7 +23,6 @@ wheels/
 # Virtual Environment
 venv/
 ENV/
-env/
 .env
 
 # IDE
@@ -32,17 +31,14 @@ env/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Application specific
+# Local development
+*.sqlite
 *.db
-*.rdb
 local_storage/
-*.spec 
+
+# Logs
+*.log
+
+# System Files
+.DS_Store
+Thumbs.db 

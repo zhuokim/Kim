@@ -5,6 +5,7 @@ import redis
 from typing import Dict, Any, Optional, List, Tuple, Union
 from pathlib import Path
 from .config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, DEBUG
+from vercel_kv import VercelKV
 
 # 设置日志
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
@@ -12,129 +13,146 @@ logger = logging.getLogger(__name__)
 
 class RedisClient:
     def __init__(self):
-        try:
-            self.redis = redis.Redis(
-                host=REDIS_HOST,
-                port=REDIS_PORT,
-                password=REDIS_PASSWORD,
-                decode_responses=True
-            )
-            # 测试连接
-            self.redis.ping()
-            logger.info("Successfully connected to Redis")
-        except Exception as e:
-            logger.warning(f"Could not connect to Redis: {e}")
-            logger.info("Falling back to local storage")
-            self.redis = None
-            self._init_local_storage()
-
-    def _init_local_storage(self):
-        """初始化本地存储"""
-        self.storage_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "local_storage"
-        self.storage_dir.mkdir(exist_ok=True)
-        self.data_file = self.storage_dir / "data.json"
-        self.data = self._load_data()
-
-    def _load_data(self):
-        """从文件加载数据"""
-        if hasattr(self, 'data_file') and self.data_file.exists():
+        self.local_storage = {}
+        self.kv = None
+        
+        # Try to initialize Vercel KV if environment variables are available
+        kv_url = os.getenv("KV_REST_API_URL")
+        kv_token = os.getenv("KV_REST_API_TOKEN")
+        
+        if kv_url and kv_token:
             try:
-                with open(self.data_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                self.kv = VercelKV(url=kv_url, token=kv_token)
+                logger.info("Successfully connected to Vercel KV")
             except Exception as e:
-                logger.error(f"Error loading data: {str(e)}")
-                return {}
-        return {}
+                logger.warning(f"Could not connect to Vercel KV: {str(e)}")
+                logger.info("Falling back to local storage")
+        else:
+            logger.info("No Vercel KV credentials found, using local storage")
 
-    def _save_data(self):
-        """保存数据到文件"""
-        if hasattr(self, 'data_file'):
+    async def ensure_connection(self):
+        """Check if connection is available"""
+        if self.kv:
             try:
-                with open(self.data_file, 'w', encoding='utf-8') as f:
-                    json.dump(self.data, f, ensure_ascii=False, indent=2)
-            except Exception as e:
-                logger.error(f"Error saving data: {str(e)}")
-
-    def set(self, key: str, value: Any, ex: Optional[int] = None) -> bool:
-        """设置键值对"""
-        try:
-            if self.redis:
-                return self.redis.set(key, json.dumps(value), ex=ex)
-            else:
-                self.data[key] = value
-                self._save_data()
-                return True
-        except Exception as e:
-            logger.error(f"Error in set: {str(e)}")
-            return False
-
-    def get(self, key: str) -> Optional[Any]:
-        """获取值"""
-        try:
-            if self.redis:
-                value = self.redis.get(key)
-                return json.loads(value) if value else None
-            else:
-                return self.data.get(key)
-        except Exception as e:
-            logger.error(f"Error in get: {str(e)}")
-            return None
-
-    def delete(self, key: str) -> bool:
-        """删除键"""
-        try:
-            if self.redis:
-                return bool(self.redis.delete(key))
-            else:
-                if key in self.data:
-                    del self.data[key]
-                    self._save_data()
-                    return True
-                return False
-        except Exception as e:
-            logger.error(f"Error in delete: {str(e)}")
-            return False
-
-    def zadd(self, name: str, mapping: Dict[str, float]) -> bool:
-        """添加到有序集合"""
-        try:
-            if self.redis:
-                return bool(self.redis.zadd(name, mapping))
-            else:
-                self.data.setdefault(name, {}).update(mapping)
-                self._save_data()
-                return True
-        except Exception as e:
-            logger.error(f"Error in zadd: {str(e)}")
-            return False
-
-    def zrevrange(self, name: str, start: int, end: int, withscores: bool = False) -> Union[List[str], List[Tuple[str, float]]]:
-        """获取有序集合的范围"""
-        try:
-            if self.redis:
-                result = self.redis.zrevrange(name, start, end, withscores=withscores)
-                return result
-            else:
-                if name not in self.data:
-                    return []
-                sorted_items = sorted(self.data[name].items(), key=lambda x: x[1], reverse=True)
-                items = sorted_items[start:end+1]
-                if withscores:
-                    return items
-                return [item[0] for item in items]
-        except Exception as e:
-            logger.error(f"Error in zrevrange: {str(e)}")
-            return []
-
-    def ensure_connection(self):
-        """测试并确保 Redis 连接"""
-        if self.redis:
-            try:
-                self.redis.ping()
+                await self.kv.ping()
                 return True
             except:
                 return False
-        return False
+        return True  # Local storage is always available
+
+    async def set(self, key: str, value: str) -> bool:
+        """Set key to hold the string value"""
+        try:
+            if self.kv:
+                await self.kv.set(key, value)
+            else:
+                self.local_storage[key] = value
+            return True
+        except Exception as e:
+            logger.error(f"Error in set operation: {str(e)}")
+            return False
+
+    async def get(self, key: str) -> Optional[str]:
+        """Get the value of key"""
+        try:
+            if self.kv:
+                return await self.kv.get(key)
+            return self.local_storage.get(key)
+        except Exception as e:
+            logger.error(f"Error in get operation: {str(e)}")
+            return None
+
+    async def delete(self, key: str) -> bool:
+        """Delete a key"""
+        try:
+            if self.kv:
+                await self.kv.delete(key)
+            else:
+                self.local_storage.pop(key, None)
+            return True
+        except Exception as e:
+            logger.error(f"Error in delete operation: {str(e)}")
+            return False
+
+    async def zadd(self, key: str, mapping: Dict[str, float]) -> bool:
+        """Add members to a sorted set"""
+        try:
+            if self.kv:
+                # Store sorted set as a special format in Vercel KV
+                current = await self.kv.get(f"zset:{key}") or {}
+                if not isinstance(current, dict):
+                    current = {}
+                current.update(mapping)
+                await self.kv.set(f"zset:{key}", current)
+            else:
+                if key not in self.local_storage:
+                    self.local_storage[key] = {}
+                self.local_storage[key].update(mapping)
+            return True
+        except Exception as e:
+            logger.error(f"Error in zadd operation: {str(e)}")
+            return False
+
+    async def zrange(self, key: str, start: int, stop: int, withscores: bool = False) -> Union[List[str], List[tuple]]:
+        """Return a range of members from a sorted set"""
+        try:
+            if self.kv:
+                data = await self.kv.get(f"zset:{key}") or {}
+            else:
+                data = self.local_storage.get(key, {})
+
+            # Sort by score
+            sorted_items = sorted(data.items(), key=lambda x: float(x[1]))
+            
+            # Handle negative indices
+            if stop < 0:
+                stop = len(sorted_items) + stop + 1
+            
+            # Get the range
+            result = sorted_items[start:stop]
+            
+            if withscores:
+                return [(item[0], float(item[1])) for item in result]
+            return [item[0] for item in result]
+        except Exception as e:
+            logger.error(f"Error in zrange operation: {str(e)}")
+            return []
+
+    async def zrevrange(self, key: str, start: int, stop: int, withscores: bool = False) -> Union[List[str], List[tuple]]:
+        """Return a range of members from a sorted set, by score, with scores in descending order"""
+        try:
+            result = await self.zrange(key, start, stop, withscores=withscores)
+            if withscores:
+                return [(item[0], float(item[1])) for item in reversed(result)]
+            return list(reversed(result))
+        except Exception as e:
+            logger.error(f"Error in zrevrange operation: {str(e)}")
+            return []
+
+    async def hset(self, key: str, mapping: Dict[str, Any]) -> bool:
+        """Set multiple hash fields to multiple values"""
+        try:
+            if self.kv:
+                await self.kv.set(f"hash:{key}", mapping)
+            else:
+                if key not in self.local_storage:
+                    self.local_storage[key] = {}
+                self.local_storage[key].update(mapping)
+            return True
+        except Exception as e:
+            logger.error(f"Error in hset operation: {str(e)}")
+            return False
+
+    async def hgetall(self, key: str) -> Dict[str, str]:
+        """Get all the fields and values in a hash"""
+        try:
+            if self.kv:
+                result = await self.kv.get(f"hash:{key}") or {}
+                return {str(k): str(v) for k, v in result.items()}
+            return self.local_storage.get(key, {})
+        except Exception as e:
+            logger.error(f"Error in hgetall operation: {str(e)}")
+            return {}
 
 # 创建 Redis 客户端实例
 redis_client = RedisClient()

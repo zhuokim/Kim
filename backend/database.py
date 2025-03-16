@@ -36,7 +36,6 @@ class Score(Base):
     __tablename__ = "scores"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    student_id = Column(Integer, ForeignKey("students.id"))
     subject = Column(String, index=True)
     score = Column(Float)
     timestamp = Column(DateTime, default=datetime.utcnow)

@@ -684,8 +684,8 @@ async def submit_score_form(
     db: Session = Depends(get_db)
 ):
     # Server-side validation
-    if score < 0 or score > 9:
-        raise HTTPException(status_code=400, detail="Score must be between 0 and 9.")
+    if score < 0 or score > 10:
+        raise HTTPException(status_code=400, detail="Score must be between 0 and 10.")
 
     access_token = request.cookies.get("access_token")
     if not access_token:
