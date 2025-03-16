@@ -5,9 +5,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from .database import SessionLocal, User, Score, Student, get_db
-from .redis_client import redis_client
-from .auth import create_access_token, decode_token, get_password_hash, verify_password
+from backend.database import SessionLocal, User, Score, Student, get_db
+from backend.redis_client import redis_client
+from backend.auth import create_access_token, decode_token, get_password_hash, verify_password
+from backend.config import TEMPLATES_DIR, STATIC_DIR, ALLOWED_ORIGINS, DEBUG
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -20,15 +21,16 @@ import sys
 from typing import List
 import json
 
-# 设置日志级别为DEBUG
+# 设置日志级别
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.DEBUG if DEBUG else logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     stream=sys.stdout
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+# 创建 FastAPI 应用
+app = FastAPI(title="实时排行榜", debug=DEBUG)
 
 # 在应用启动时测试Redis连接
 @app.on_event("startup")
@@ -38,23 +40,23 @@ async def startup_event():
         redis_client.ensure_connection()
         logger.info("Redis connection test successful")
     except Exception as e:
-        logger.error(f"Redis connection test failed: {str(e)}")
-        logger.error("Application will continue, but Redis operations may fail")
+        logger.warning(f"Redis connection test failed: {str(e)}")
+        logger.info("Using local storage instead of Redis")
 
-# 添加 CORS 中间件
+# 配置 CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 静态文件服务
-app.mount("/static", StaticFiles(directory="backend/static"), name="static")
+# 配置静态文件
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Add enumerate to Jinja2 globals
-templates = Jinja2Templates(directory="backend/templates")
+# 配置模板
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals.update(enumerate=enumerate)
 
 # 创建Excel模板

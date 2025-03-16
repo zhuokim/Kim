@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
   </head>
-  <body class="bg-gray-50 min-h-screen">
+  <body class="bg-gray-50 min-h-screen flex flex-col">
     <nav class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
       <div class="max-w-7xl mx-auto px-4">
         <div class="flex justify-between items-center h-16">
@@ -23,8 +23,19 @@
       </div>
     </nav>
 
-    <main class="container mx-auto py-6">
+    <main class="container mx-auto py-6 flex-grow">
       {% block content %}{% endblock %}
     </main>
+
+    <footer class="bg-gray-100 py-4 mt-8">
+      <div class="container mx-auto px-4 text-center text-gray-600">
+        <p class="text-sm">
+          Created by Kim | Contact: 
+          <a href="mailto:zhuo.jin@gmail.com" class="text-blue-600 hover:text-blue-800 transition-colors">
+            zhuo.jin@gmail.com
+          </a>
+        </p>
+      </div>
+    </footer>
   </body>
 </html>

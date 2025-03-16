@@ -1,155 +1,130 @@
-import redis
 import logging
 import os
-from dotenv import load_dotenv
+import json
+import redis
 from typing import Dict, Any, Optional, List, Tuple, Union
-
-# 加载环境变量
-load_dotenv()
+from pathlib import Path
+from .config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, DEBUG
 
 # 设置日志
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
 
 class RedisClient:
     def __init__(self):
-        self.host = os.getenv('REDIS_HOST', 'localhost')
-        self.port = int(os.getenv('REDIS_PORT', 6379))
-        self.db = int(os.getenv('REDIS_DB', 0))
-        self.client = None
-        self.connect()
-    
-    def connect(self):
-        """连接到Redis服务器"""
         try:
-            logger.info(f"Attempting to connect to Redis at {self.host}:{self.port} (DB: {self.db})")
-            self.client = redis.Redis(
-                host=self.host,
-                port=self.port,
-                db=self.db,
+            self.redis = redis.Redis(
+                host=REDIS_HOST,
+                port=REDIS_PORT,
+                password=REDIS_PASSWORD,
                 decode_responses=True
             )
-            pong = self.client.ping()
-            logger.info(f"Redis ping response: {pong}")
-            
-            # 测试基本操作
-            test_key = "test_connection"
-            self.client.set(test_key, "test_value")
-            test_value = self.client.get(test_key)
-            self.client.delete(test_key)
-            logger.info("Redis test operations successful")
-            
-        except Exception as e:
-            logger.error(f"Failed to connect to Redis: {str(e)}")
-            raise
+            # 测试连接
+            self.redis.ping()
+            logger.info("Successfully connected to Redis")
+        except redis.ConnectionError as e:
+            logger.warning(f"Could not connect to Redis: {e}")
+            logger.info("Falling back to local storage")
+            self.redis = None
+            self._init_local_storage()
 
-    def ensure_connection(self):
-        """确保Redis连接可用"""
-        try:
-            if not self.client or not self.client.ping():
-                self.connect()
-        except Exception as e:
-            logger.error(f"Redis connection check failed: {str(e)}")
-            self.connect()
+    def _init_local_storage(self):
+        """初始化本地存储"""
+        self.storage_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "local_storage"
+        self.storage_dir.mkdir(exist_ok=True)
+        self.data_file = self.storage_dir / "data.json"
+        self.data = self._load_data()
 
-    def set(self, key: str, value: Union[str, int, float]) -> bool:
+    def _load_data(self):
+        """从文件加载数据"""
+        if hasattr(self, 'data_file') and self.data_file.exists():
+            try:
+                with open(self.data_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading data: {str(e)}")
+                return {}
+        return {}
+
+    def _save_data(self):
+        """保存数据到文件"""
+        if hasattr(self, 'data_file'):
+            try:
+                with open(self.data_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.data, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                logger.error(f"Error saving data: {str(e)}")
+
+    def set(self, key: str, value: Any, ex: Optional[int] = None) -> bool:
         """设置键值对"""
         try:
-            self.ensure_connection()
-            return self.client.set(key, value)
+            if self.redis:
+                return self.redis.set(key, json.dumps(value), ex=ex)
+            else:
+                self.data[key] = value
+                self._save_data()
+                return True
         except Exception as e:
-            logger.error(f"Error setting key {key}: {str(e)}")
-            raise
+            logger.error(f"Error in set: {str(e)}")
+            return False
 
-    def get(self, key: str) -> Optional[str]:
-        """获取键值"""
+    def get(self, key: str) -> Optional[Any]:
+        """获取值"""
         try:
-            self.ensure_connection()
-            return self.client.get(key)
+            if self.redis:
+                value = self.redis.get(key)
+                return json.loads(value) if value else None
+            else:
+                return self.data.get(key)
         except Exception as e:
-            logger.error(f"Error getting key {key}: {str(e)}")
-            raise
+            logger.error(f"Error in get: {str(e)}")
+            return None
 
-    def delete(self, key: str) -> int:
+    def delete(self, key: str) -> bool:
         """删除键"""
         try:
-            self.ensure_connection()
-            return self.client.delete(key)
+            if self.redis:
+                return bool(self.redis.delete(key))
+            else:
+                if key in self.data:
+                    del self.data[key]
+                    self._save_data()
+                    return True
+                return False
         except Exception as e:
-            logger.error(f"Error deleting key {key}: {str(e)}")
-            raise
+            logger.error(f"Error in delete: {str(e)}")
+            return False
 
-    def zadd(self, name: str, mapping: Dict[str, float]) -> int:
+    def zadd(self, name: str, mapping: Dict[str, float]) -> bool:
         """添加到有序集合"""
         try:
-            self.ensure_connection()
-            return self.client.zadd(name, mapping)
+            if self.redis:
+                return bool(self.redis.zadd(name, mapping))
+            else:
+                self.data.setdefault(name, {}).update(mapping)
+                self._save_data()
+                return True
         except Exception as e:
-            logger.error(f"Error adding to sorted set {name}: {str(e)}")
-            raise
+            logger.error(f"Error in zadd: {str(e)}")
+            return False
 
-    def zrevrange(self, name: str, start: int, end: int, withscores: bool = False) -> List[Union[str, Tuple[str, float]]]:
-        """获取有序集合的范围（按分数降序）"""
+    def zrevrange(self, name: str, start: int, end: int, withscores: bool = False) -> Union[List[str], List[Tuple[str, float]]]:
+        """获取有序集合的范围"""
         try:
-            self.ensure_connection()
-            return self.client.zrevrange(name, start, end, withscores=withscores)
+            if self.redis:
+                result = self.redis.zrevrange(name, start, end, withscores=withscores)
+                return result
+            else:
+                if name not in self.data:
+                    return []
+                sorted_items = sorted(self.data[name].items(), key=lambda x: x[1], reverse=True)
+                items = sorted_items[start:end+1]
+                if withscores:
+                    return items
+                return [item[0] for item in items]
         except Exception as e:
-            logger.error(f"Error getting range from sorted set {name}: {str(e)}")
-            raise
+            logger.error(f"Error in zrevrange: {str(e)}")
+            return []
 
-    def scan_iter(self, match: Optional[str] = None, count: Optional[int] = None) -> List[str]:
-        """扫描键"""
-        try:
-            self.ensure_connection()
-            return list(self.client.scan_iter(match=match, count=count))
-        except Exception as e:
-            logger.error(f"Error scanning keys with pattern {match}: {str(e)}")
-            raise
-
-    def hset(self, name: str, mapping: Dict[str, str]) -> int:
-        """设置哈希表字段"""
-        try:
-            self.ensure_connection()
-            return self.client.hset(name, mapping=mapping)
-        except Exception as e:
-            logger.error(f"Error setting hash fields for {name}: {str(e)}")
-            raise
-
-    def hget(self, name: str, key: str) -> Optional[str]:
-        """获取哈希表字段"""
-        try:
-            self.ensure_connection()
-            return self.client.hget(name, key)
-        except Exception as e:
-            logger.error(f"Error getting hash field {key} from {name}: {str(e)}")
-            raise
-
-    def hgetall(self, name: str) -> Dict[str, str]:
-        """获取哈希表所有字段"""
-        try:
-            self.ensure_connection()
-            return self.client.hgetall(name)
-        except Exception as e:
-            logger.error(f"Error getting all hash fields from {name}: {str(e)}")
-            raise
-
-    def exists(self, *names: str) -> int:
-        """检查键是否存在"""
-        try:
-            self.ensure_connection()
-            return self.client.exists(*names)
-        except Exception as e:
-            logger.error(f"Error checking existence of keys {names}: {str(e)}")
-            raise
-
-    def expire(self, name: str, time: int) -> bool:
-        """设置键的过期时间（秒）"""
-        try:
-            self.ensure_connection()
-            return self.client.expire(name, time)
-        except Exception as e:
-            logger.error(f"Error setting expiry for {name}: {str(e)}")
-            raise
-
-# 创建Redis客户端实例
+# 创建 Redis 客户端实例
 redis_client = RedisClient()
