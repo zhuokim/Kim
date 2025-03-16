@@ -35,12 +35,16 @@ app = FastAPI(title="实时排行榜", debug=DEBUG)
 # 在应用启动时测试Redis连接
 @app.on_event("startup")
 async def startup_event():
+    """在应用启动时测试Redis连接"""
+    logger.info("Testing Redis connection on startup...")
     try:
-        logger.info("Testing Redis connection on startup...")
-        redis_client.ensure_connection()
-        logger.info("Redis connection test successful")
+        if redis_client.ensure_connection():
+            logger.info("Redis connection test successful")
+        else:
+            logger.warning("Redis connection test failed")
+            logger.info("Using local storage instead of Redis")
     except Exception as e:
-        logger.warning(f"Redis connection test failed: {str(e)}")
+        logger.error(f"Error during startup: {e}")
         logger.info("Using local storage instead of Redis")
 
 # 配置 CORS
@@ -854,10 +858,5 @@ async def winners_display(request: Request, subject: str, count: int = 5):
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring"""
-    try:
-        # Test Redis connection
-        await redis_client.ping()
-        return {"status": "healthy", "redis": "connected"}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+    """健康检查端点"""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}

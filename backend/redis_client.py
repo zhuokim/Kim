@@ -22,7 +22,7 @@ class RedisClient:
             # 测试连接
             self.redis.ping()
             logger.info("Successfully connected to Redis")
-        except redis.ConnectionError as e:
+        except Exception as e:
             logger.warning(f"Could not connect to Redis: {e}")
             logger.info("Falling back to local storage")
             self.redis = None
@@ -125,6 +125,16 @@ class RedisClient:
         except Exception as e:
             logger.error(f"Error in zrevrange: {str(e)}")
             return []
+
+    def ensure_connection(self):
+        """测试并确保 Redis 连接"""
+        if self.redis:
+            try:
+                self.redis.ping()
+                return True
+            except:
+                return False
+        return False
 
 # 创建 Redis 客户端实例
 redis_client = RedisClient()
