@@ -8,6 +8,10 @@
     ],
     "routes": [
         {
+            "src": "/static/(.*)",
+            "dest": "/backend/static/$1"
+        },
+        {
             "src": "/(.*)",
             "dest": "api/index.py"
         }
@@ -18,5 +22,11 @@
         "PYTHONPATH": ".",
         "JWT_SECRET": "your-secret-key-2024",
         "JWT_ALGORITHM": "HS256"
+    },
+    "functions": {
+        "api/index.py": {
+            "memory": 1024,
+            "maxDuration": 10
+        }
     }
 } 
