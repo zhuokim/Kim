@@ -4,21 +4,9 @@
         {
             "src": "api/index.py",
             "use": "@vercel/python"
-        },
-        {
-            "src": "backend/static/**",
-            "use": "@vercel/static"
-        },
-        {
-            "src": "backend/templates/**",
-            "use": "@vercel/static"
         }
     ],
     "routes": [
-        {
-            "src": "/static/(.*)",
-            "dest": "/backend/static/$1"
-        },
         {
             "src": "/(.*)",
             "dest": "api/index.py"
@@ -26,6 +14,7 @@
     ],
     "env": {
         "PYTHON_VERSION": "3.9",
-        "APP_MODULE": "api.index:app"
+        "APP_MODULE": "api.index:app",
+        "PYTHONPATH": "."
     }
 } 

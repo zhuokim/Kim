@@ -56,11 +56,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 配置静态文件
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# 设置模板目录
+templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+templates = Jinja2Templates(directory=templates_dir)
+
+# 设置静态文件目录
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # 配置模板
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals.update(enumerate=enumerate)
 
 # 创建Excel模板
