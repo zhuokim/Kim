@@ -18,9 +18,9 @@ root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_path)
 
 # 导入必要的模块
-from backend.models import User, Score
+from .models import User, Score
 from .database import SessionLocal, engine, Base
-from backend.auth import create_access_token, decode_token, get_password_hash, verify_password
+from .auth import create_access_token, decode_token, get_password_hash, verify_password
 from backend.redis_client import redis_client
 
 # 创建数据库表
@@ -29,11 +29,13 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # 设置模板目录
-templates_dir = os.path.join(root_path, "backend", "templates")
+templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend", "templates")
+logger.info(f"Templates directory: {templates_dir}")
 templates = Jinja2Templates(directory=templates_dir)
 
 # 设置静态文件目录
-static_dir = os.path.join(root_path, "backend", "static")
+static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend", "static")
+logger.info(f"Static directory: {static_dir}")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Dependency
