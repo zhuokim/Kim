@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col items-center justify-center">
+    <!-- 标题区域 -->
+    <div class="text-center mb-12">
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 rainbow-text">
+            <span class="text-6xl md:text-7xl lg:text-8xl">🏆</span>
+            <span>评分排行榜系统</span>
+        </h1>
+        <p class="text-2xl md:text-3xl text-gray-600">
+            实时展示、公平公正、数据同步
+        </p>
+    </div>
+
+    <!-- 功能按钮区域 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full px-4">
+        <!-- 查看排行榜 -->
+        <div class="bg-white rounded-xl shadow-xl overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div class="p-8">
+                <div class="text-4xl mb-4">🎯</div>
+                <h3 class="text-2xl font-bold mb-4">查看排行榜</h3>
+                <p class="text-gray-600 mb-6">实时查看各主题评分排名</p>
+                <div class="space-y-4" id="leaderboardLinks">
+                    <!-- 排行榜链接将通过JavaScript动态添加 -->
+                    <div class="text-center text-gray-500" id="noLeaderboards">
+                        暂无排行榜数据
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评委入口 -->
+        <div class="bg-white rounded-xl shadow-xl overflow-hidden transform hover:scale-105 transition-transform duration-300">
+            <div class="p-8">
+                <div class="text-4xl mb-4">👨‍🏫</div>
+                <h3 class="text-2xl font-bold mb-4">评委入口</h3>
+                <p class="text-gray-600 mb-6">登录后可进行评分操作</p>
+                <div class="space-y-4">
+                    <a href="/login" class="block w-full bg-purple-600 text-white text-center py-3 rounded-lg text-xl hover:bg-purple-700 transition-colors">
+                        评委登录
+                    </a>
+                    <a href="/register" class="block w-full bg-gray-600 text-white text-center py-3 rounded-lg text-xl hover:bg-gray-700 transition-colors">
+                        注册账号
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 获取可用的排行榜列表
+async function fetchLeaderboards() {
+    try {
+        const response = await fetch('/api/leaderboards');
+        const data = await response.json();
+        const container = document.getElementById('leaderboardLinks');
+        const noLeaderboards = document.getElementById('noLeaderboards');
+        
+        if (data.subjects && data.subjects.length > 0) {
+            noLeaderboards.style.display = 'none';
+            container.innerHTML = data.subjects.map(subject => `
+                <a href="/leaderboard/${subject}" 
+                   class="block w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center py-3 rounded-lg text-xl hover:from-blue-600 hover:to-purple-600 transition-colors">
+                    ${subject}排行榜
+                </a>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error fetching leaderboards:', error);
+    }
+}
+
+// 页面加载时获取排行榜列表
+document.addEventListener('DOMContentLoaded', fetchLeaderboards);
+
+// 定期刷新排行榜列表
+setInterval(fetchLeaderboards, 30000);
+</script>
+{% endblock %}

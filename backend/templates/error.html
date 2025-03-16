@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10">
+    <div class="bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold mb-6 text-red-500 flex items-center justify-center">
+            <span class="mr-2">⚠️</span>
+            <span>
+                <span class="chinese">出错啦</span>
+                <span class="english">Error</span>
+            </span>
+        </h1>
+
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <div class="text-red-700 whitespace-pre-line">
+                {{ detail }}
+            </div>
+        </div>
+
+        <div class="text-center space-y-4">
+            <a href="javascript:history.back()" 
+               class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <span class="mr-2">👈</span>
+                <span>
+                    <span class="chinese">返回上一页</span>
+                    <span class="english">Go Back</span>
+                </span>
+            </a>
+
+            <a href="/" 
+               class="block text-blue-600 hover:text-blue-800">
+                <span class="chinese">返回首页</span>
+                <span class="english">Return to Home</span>
+            </a>
+        </div>
+
+        <div class="mt-6 text-sm text-gray-500">
+            <p class="flex items-center justify-center">
+                <span class="mr-2">💡</span>
+                <span>
+                    <span class="chinese">如果问题持续存在，请联系管理员</span>
+                    <span class="english">If the problem persists, please contact the administrator</span>
+                </span>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

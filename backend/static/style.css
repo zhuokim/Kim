@@ -1,0 +1,138 @@
+/* 基本样式 */
+:root {
+    --primary-color: #4a90e2;
+    --secondary-color: #f39c12;
+    --background-color: #f5f6fa;
+    --text-color: #2c3e50;
+}
+
+body {
+    font-family: 'Inter', 'ZCOOL KuaiLe', system-ui, -apple-system, sans-serif;
+    background: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 导航栏样式 */
+.navbar {
+    background: linear-gradient(90deg, #4F46E5 0%, #7C3AED 100%);
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 按钮样式 */
+.button {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* 表格样式 */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* 动画效果 */
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem;
+    }
+}
+
+/* 中英文字体设置 */
+.chinese {
+    font-family: 'ZCOOL KuaiLe', system-ui, sans-serif;
+    display: inline-block;
+}
+
+.english {
+    font-family: 'Inter', system-ui, sans-serif;
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .chinese, .english {
+        display: inline-block;
+    }
+    .english {
+        margin-left: 0.25rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* 彩虹文字效果 */
+.rainbow-text {
+    background: linear-gradient(to right, 
+        #ff0000, #ff8000, #ffff00, #80ff00, #00ff00, #00ff80, #00ffff, 
+        #0080ff, #0000ff, #8000ff, #ff00ff, #ff0080);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: rainbow 8s linear infinite;
+}
+
+@keyframes rainbow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+/* 响应式布局 */
+@media (max-width: 640px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+} 

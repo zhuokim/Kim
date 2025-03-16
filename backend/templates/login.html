@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto mt-10">
+    <div class="bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold mb-6 rainbow-text flex items-center justify-center">
+            <span class="mr-2">👨‍🏫</span>
+            <span>
+                <span class="chinese">教师登录</span>
+                <span class="english">Teacher Login</span>
+            </span>
+        </h1>
+
+        <form method="post" action="/login" class="space-y-6">
+            <div>
+                <label for="username" class="block text-gray-700 mb-2">
+                    <span class="chinese">用户名</span>
+                    <span class="english">Username</span>
+                </label>
+                <input type="text" id="username" name="username" required
+                    class="w-full p-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入用户名 / Enter username">
+            </div>
+
+            <div>
+                <label for="password" class="block text-gray-700 mb-2">
+                    <span class="chinese">密码</span>
+                    <span class="english">Password</span>
+                </label>
+                <input type="password" id="password" name="password" required
+                    class="w-full p-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入密码 / Enter password">
+            </div>
+
+            <button type="submit"
+                class="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-3 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center">
+                <span class="mr-2">🔐</span>
+                <span>
+                    <span class="chinese">登录</span>
+                    <span class="english">Login</span>
+                </span>
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p class="text-gray-600">
+                <span class="chinese">还没有账号？</span>
+                <span class="english">Don't have an account?</span>
+                <a href="/register" class="text-blue-500 hover:text-blue-600 font-medium">
+                    <span class="chinese">立即注册</span>
+                    <span class="english">Register Now</span>
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

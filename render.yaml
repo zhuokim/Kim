@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: leaderboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: leaderboard-redis
+          property: host
+      - key: REDIS_PORT
+        value: 6379
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEBUG
+        value: false
+
+  - type: redis
+    name: leaderboard-redis
+    ipAllowList: []
+    plan: free 
