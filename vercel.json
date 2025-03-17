@@ -19,7 +19,7 @@
     "env": {
         "PYTHON_VERSION": "3.9",
         "APP_MODULE": "api.index:app",
-        "PYTHONPATH": ".",
+        "PYTHONPATH": ".:backend",
         "JWT_SECRET": "your-secret-key-2024",
         "JWT_ALGORITHM": "HS256"
     },
