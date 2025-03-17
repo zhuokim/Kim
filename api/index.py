@@ -6,12 +6,107 @@ from sqlalchemy.orm import Session
 import os
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any, Optional, Union
 import logging
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class RedisClient:
+    def __init__(self):
+        self.storage = {}
+        logger.info("Using local storage mode")
+
+    def ensure_connection(self):
+        return True
+
+    def set(self, key: str, value: str) -> bool:
+        try:
+            self.storage[key] = value
+            return True
+        except Exception as e:
+            logger.error(f"Error in set operation: {str(e)}")
+            return False
+
+    def get(self, key: str) -> Optional[str]:
+        try:
+            return self.storage.get(key)
+        except Exception as e:
+            logger.error(f"Error in get operation: {str(e)}")
+            return None
+
+    def delete(self, key: str) -> bool:
+        try:
+            self.storage.pop(key, None)
+            return True
+        except Exception as e:
+            logger.error(f"Error in delete operation: {str(e)}")
+            return False
+
+    def zadd(self, key: str, mapping: Dict[str, float]) -> bool:
+        try:
+            if key not in self.storage:
+                self.storage[key] = {}
+            self.storage[key].update(mapping)
+            return True
+        except Exception as e:
+            logger.error(f"Error in zadd operation: {str(e)}")
+            return False
+
+    def zrange(self, key: str, start: int, stop: int, withscores: bool = False) -> Union[List[str], List[tuple]]:
+        try:
+            data = self.storage.get(key, {})
+            sorted_items = sorted(data.items(), key=lambda x: float(x[1]))
+            if stop < 0:
+                stop = len(sorted_items) + stop + 1
+            result = sorted_items[start:stop]
+            if withscores:
+                return [(item[0], float(item[1])) for item in result]
+            return [item[0] for item in result]
+        except Exception as e:
+            logger.error(f"Error in zrange operation: {str(e)}")
+            return []
+
+    def zrevrange(self, key: str, start: int, stop: int, withscores: bool = False) -> Union[List[str], List[tuple]]:
+        try:
+            result = self.zrange(key, start, stop, withscores=withscores)
+            if withscores:
+                return [(item[0], float(item[1])) for item in reversed(result)]
+            return list(reversed(result))
+        except Exception as e:
+            logger.error(f"Error in zrevrange operation: {str(e)}")
+            return []
+
+    def hset(self, key: str, mapping: Dict[str, Any]) -> bool:
+        try:
+            if key not in self.storage:
+                self.storage[key] = {}
+            self.storage[key].update(mapping)
+            return True
+        except Exception as e:
+            logger.error(f"Error in hset operation: {str(e)}")
+            return False
+
+    def hgetall(self, key: str) -> Dict[str, str]:
+        try:
+            return self.storage.get(key, {})
+        except Exception as e:
+            logger.error(f"Error in hgetall operation: {str(e)}")
+            return {}
+
+    def scan_iter(self, pattern: str) -> List[str]:
+        try:
+            matching_keys = []
+            for key in self.storage.keys():
+                if pattern.replace("*", "") in key:
+                    matching_keys.append(key)
+            return matching_keys
+        except Exception as e:
+            logger.error(f"Error in scan_iter operation: {str(e)}")
+            return []
+
+redis_client = RedisClient()
 
 # 添加项目根目录到 Python 路径
 root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,7 +116,6 @@ sys.path.append(root_path)
 from .models import User, Score
 from .database import SessionLocal, engine, Base
 from .auth import create_access_token, decode_token, get_password_hash, verify_password
-from backend.redis_client import redis_client
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
