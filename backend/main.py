@@ -718,7 +718,7 @@ async def get_leaderboards():
     """获取所有可用的排行榜科目"""
     try:
         # 获取所有分数键
-        score_keys = await redis_client.scan_iter("scores:*")
+        score_keys = redis_client.scan_iter("scores:*")
         # 提取科目名称
         subjects = set()
         for key in score_keys:

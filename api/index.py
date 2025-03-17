@@ -125,7 +125,7 @@ async def submit_score(
             raise HTTPException(status_code=404, detail="User not found")
 
         # 添加分数到 Redis 排行榜
-        await redis_client.zadd(f"leaderboard:{subject}", {username: score})
+        redis_client.zadd(f"leaderboard:{subject}", {username: score})
 
         # 保存分数到数据库
         new_score = Score(user_id=user.id, subject=subject, score=score)
@@ -148,7 +148,7 @@ async def leaderboard_page(
     """排行榜页面"""
     try:
         # 从 Redis 获取排行榜数据
-        scores = await redis_client.zrevrange(f"leaderboard:{subject}", 0, -1, withscores=True)
+        scores = redis_client.zrevrange(f"leaderboard:{subject}", 0, -1, withscores=True)
         
         all_scores = []
         for member, score in scores:
@@ -158,7 +158,7 @@ async def leaderboard_page(
                 
                 # 获取详细信息
                 details_key = f"{subject}:{member}:details"
-                details = await redis_client.hgetall(details_key)
+                details = redis_client.hgetall(details_key)
                 
                 score_info = {
                     "username": member,
